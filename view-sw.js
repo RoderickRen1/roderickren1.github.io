@@ -68,6 +68,13 @@ function contentPath(request, url) {
   return path;
 }
 
+function isTianxiPath(path) {
+  return path === '/index.html' || path === '/index.rsc' || path === '/favicon.svg'
+    || /^\/projects\/[a-z0-9-]+\.(html|rsc)$/.test(path)
+    || path.startsWith('/_next/static/') || path.startsWith('/assets/tianxi/')
+    || /^\/assets\/chick-(run|trip|recover)-crossbody\.png$/.test(path);
+}
+
 function responseFor(request, path, bytes) {
   const headers = new Headers({
     'Content-Type': types[path.split('.').at(-1)] ?? 'application/octet-stream',
@@ -97,11 +104,10 @@ function responseFor(request, path, bytes) {
   return new Response(request.method === 'HEAD' ? null : bytes, { headers });
 }
 
-async function openRequest(request, url) {
+async function openRequest(request, path) {
   try {
     const active = await session('readonly', store => store.get('active'));
     if (active && active.expires > Date.now()) {
-      const path = contentPath(request, url);
       const bytes = await readContent(path, active.key);
       if (bytes) return responseFor(request, path, bytes);
       if (request.mode === 'navigate') {
@@ -120,8 +126,8 @@ async function openRequest(request, url) {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/content/')
-    || url.pathname === '/view-sw.js' || url.pathname === '/index.html' || url.searchParams.has('unlock')) return;
+  if (url.origin !== self.location.origin || url.pathname === '/index.html' || url.searchParams.has('unlock')) return;
   if (event.request.method !== 'GET' && event.request.method !== 'HEAD') return;
-  event.respondWith(openRequest(event.request, url));
+  const path = contentPath(event.request, url);
+  if (isTianxiPath(path)) event.respondWith(openRequest(event.request, path));
 });

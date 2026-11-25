@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title> VIBE LAB</title>
+<a id="link" href="/vibe-lab-site/">打开 VIBE LAB</a>
+<script>
+  const link = document.getElementById('link');
+  const destination = new URL(link.href);
+  for (const [key, value] of new URLSearchParams(location.search)) {
+    if (!destination.searchParams.has(key)) destination.searchParams.append(key, value);
+  }
+  destination.hash = location.hash;
+  link.href = destination;
+  location.replace(destination);
+</script>
+</html>

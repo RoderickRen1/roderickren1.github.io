@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>链接预览</title>
+<style>
+  html { color-scheme: light; font-family: system-ui, sans-serif; background: #eee8e0; color: #211c17; }
+  body { display: grid; min-height: 100svh; box-sizing: border-box; margin: 0; padding: 24px; place-items: center; }
+  main { box-sizing: border-box; width: min(100%, 460px); padding: 32px; border-radius: 26px; background: #fff8; border: 1px solid #fffd; box-shadow: 0 8px 30px #68523719; }
+  h1 { font-size: clamp(22px, 5vw, 30px); margin: 0 0 12px; }
+  p { margin: 0; line-height: 1.7; }
+</style>
+<main>
+  <h1>链接预览</h1>
+  <p id="status" role="status">请使用收到的完整分享链接打开。</p>
+</main>
+<script type="module">
+  const status = document.getElementById('status');
+  const key = /^#k=([A-Za-z0-9_-]{43})$/.exec(location.hash)?.[1];
+  if (key) {
+    history.replaceState(null, '', location.pathname + location.search);
+    status.textContent = '正在打开网页…';
+    try {
+      if (!navigator.serviceWorker) throw new Error('browser');
+      await navigator.serviceWorker.register('/view-sw.js');
+      const worker = (await navigator.serviceWorker.ready).active;
+      const result = await new Promise((resolve, reject) => {
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => reject(new Error('timeout')), 25000);
+        channel.port1.onmessage = event => {
+          clearTimeout(timer);
+          resolve(event.data);
+        };
+        worker.postMessage(key, [channel.port2]);
+      });
+      if (!result) throw new Error('link');
+      const target = new URL(location.href);
+      target.searchParams.delete('unlock');
+      target.pathname = target.pathname.replace(/\/$/, '') || '/';
+      location.replace(target.pathname + target.search);
+    } catch (error) {
+      status.textContent = error.message === 'link'
+        ? '这个分享链接无效。请使用发件人提供的完整链接。'
+        : '网页预览暂时无法加载。请重新打开分享链接，或换一个浏览器。';
+    }
+  }
+</script>
+</html>

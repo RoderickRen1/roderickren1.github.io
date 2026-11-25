@@ -36,7 +36,10 @@
         worker.postMessage(key, [channel.port2]);
       });
       if (!result) throw new Error('link');
-      location.replace('/');
+      const target = new URL(location.href);
+      target.searchParams.delete('unlock');
+      target.pathname = target.pathname.replace(/\/$/, '') || '/';
+      location.replace(target.pathname + target.search);
     } catch (error) {
       status.textContent = error.message === 'link'
         ? '这个分享链接无效。请使用发件人提供的完整链接。'
